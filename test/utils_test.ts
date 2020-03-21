@@ -12,5 +12,4 @@ describe('utils', () => {
           assert.equal(iptoHex('255.255.255.255'), '0xffffffff');
         });
       });
-    
 })
