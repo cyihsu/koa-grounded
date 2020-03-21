@@ -1,4 +1,4 @@
-import { assert } from 'chai';
+import { assert, expect } from 'chai';
 
 import { iptoHex } from '../src/utils';
 describe('utils', () => {
@@ -11,5 +11,9 @@ describe('utils', () => {
           assert.equal(iptoHex('0.0.0.0'), '0x00000000');
           assert.equal(iptoHex('255.255.255.255'), '0xffffffff');
         });
+
+        it('should throw error on invalid address numbers', () => {
+            expect(() => iptoHex('0.256.0.0')).to.throw();
+          });
       });
 })
