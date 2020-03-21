@@ -1,0 +1,19 @@
+{
+  "name": "koa-grounded",
+  "version": "0.0.1",
+  "description": "A distributed rate-limit middleware using fixed-window algorithm",
+  "main": "index.js",
+  "author": "Chen-Yi Hsu",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "ioredis": "^4.16.0",
+    "microtime-nodejs": "^1.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^7.1.1",
+    "nodemon": "^2.0.2",
+    "tslint": "^6.1.0",
+    "typescript": "^3.8.3"
+  }
+}
