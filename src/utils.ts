@@ -9,5 +9,5 @@ export function iptoHex(IP: string): string {
             return accumulator * 256 + currentVal
         }
         , 0).toString(16);
-    return `0x${ipHex === "0" ? "00000000" : ipHex}`;
+    return `0x${ipHex === '0' ? '00000000' : ipHex}`;
 }

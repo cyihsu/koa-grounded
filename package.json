@@ -13,6 +13,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "example": "ts-node-dev --respawn example/index.ts",
     "test": "mocha --require ts-node/register test/*.ts"
   },
   "dependencies": {
@@ -21,9 +22,11 @@
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",
+    "@types/koa": "^2.11.2",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.9.2",
     "chai": "^4.2.0",
+    "koa": "^2.11.0",
     "mocha": "^7.1.1",
     "ts-node-dev": "^1.0.0-pre.44",
     "tslint": "^6.1.0",
