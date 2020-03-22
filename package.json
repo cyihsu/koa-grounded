@@ -1,11 +1,16 @@
 {
   "name": "koa-grounded",
   "version": "0.0.1",
-  "description": "A distributed rate-limit middleware using fixed-window algorithm",
-  "main": "index.js",
+  "description": "A distributed rate-limit middleware using fixed-window algorithm and Pub/Sub pattern",
+  "repository": "cyihsu/koa-grounded",
   "author": "Chen-Yi Hsu",
   "license": "MIT",
-  "private": false,
+  "keywords": [
+    "ratelimit",
+    "ratelimitter",
+    "DRL",
+    "distributed"
+  ],
   "scripts": {
     "test": "mocha --require ts-node/register test/*.ts"
   },

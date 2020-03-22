@@ -1,6 +1,6 @@
 import { assert, expect } from 'chai';
-
 import { iptoHex } from '../src/utils';
+
 describe('utils', () => {
     describe('iptoHex', () => {
         it('should represent IP address as a hexadecimal string', () => {
