@@ -1,5 +1,5 @@
 import { assert, expect } from 'chai';
-import { iptoHex } from '../src/utils';
+import { iptoHex } from '../lib/utils';
 
 describe('utils', () => {
     describe('iptoHex', () => {
