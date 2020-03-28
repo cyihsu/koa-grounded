@@ -8,19 +8,21 @@ const app = new Koa();
 dotenv.config();
 
 // Grounded Middleware
-app.use(Grounded({
+app.use(
+  Grounded({
     ratelimit: 10,
-    globalEXP: 1 * 10 * 1000 * 1000,
+    globalEXP: 1 * 60 * 1000 * 1000,
     db: new Redis({
-        port: parseInt(process.env.REDIS_PORT, 10),
-        host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT, 10),
+      host: process.env.REDIS_HOST,
     }),
-    verbose: true
-}));
+    verbose: true,
+  })
+);
 
 // Sample Output
 app.use(async (ctx: Koa.Context) => {
-    ctx.body = 'Hello, World!';
+  ctx.body = 'Hello, World!';
 });
 
 // Using IPv4 instead of IPv6;
