@@ -4,8 +4,9 @@ export interface GroundedConfigs {
   ratelimit: number;
   globalEXP: number;
   timeout: number;
+  cacheSize: number;
   localThreshold: number;
-  db: IORedis.Redis;
+  dbStr: string;
   verbose?: boolean;
 }
 
@@ -20,3 +21,17 @@ export interface VisitorAttrs {
   uat: number;
   exp: number;
 }
+
+// macro_name => macro_filename
+export const GroundedMacros = [
+  {
+    name: 'createKey',
+    filename: 'create_key',
+    key_num: 1,
+  },
+  {
+    name: 'visitKey',
+    filename: 'visit_key',
+    key_num: 1,
+  },
+];

@@ -1,52 +1,85 @@
 import Koa from 'koa';
+import Redis from 'ioredis';
+import LRU from 'lru-cache';
 import microtime from 'microtime-nodejs';
 import fs from 'fs';
 import path from 'path';
 
-import { iptoHex, groundedVerbose } from './utils';
-import { VisitorAttrs, GroundedConfigs } from './interfaces';
+import {
+  iptoHex,
+  groundedVerbose,
+  logger,
+  micro_to_mili,
+  REDIS_CONSOLE_PREFIX,
+} from './utils';
+import { VisitorAttrs, GroundedConfigs, GroundedMacros } from './interfaces';
 
-/*
- * Global Variables of the Grounded Instance
- */
-const bannedKeys: Map<string, number> = new Map<string, number>();
-const localCache: Map<string, VisitorAttrs> = new Map<string, VisitorAttrs>();
-const localBucket: Map<string, number> = new Map<string, number>();
-let localQueue: string[][] = [];
-
-// Expose the Limiter Instance
 export = (Configs: GroundedConfigs) => {
-  // Redis-Lua Macros Definition
-  Configs.db.defineCommand('createKey', {
-    numberOfKeys: 1,
-    lua: fs.readFileSync(path.resolve(__dirname, '../scripts/create_key.lua'), {
-      encoding: 'utf8',
-    }),
+  /*
+   * Global Variables of the Grounded Instance
+   */
+  const db = new Redis(Configs.dbStr);
+  const watcher = new Redis(Configs.dbStr);
+
+  const bannedKeys: LRU<string, number> = new LRU<string, number>(
+    Configs.cacheSize
+  );
+  // prettier-ignore
+  const localCache: LRU<string, VisitorAttrs> = new LRU<string, VisitorAttrs>(Configs.cacheSize);
+  let localQueue: string[][] = [];
+
+  /*
+   *
+   * Redis-Lua Macros Definitions
+   */
+  GroundedMacros.forEach((macro) => {
+    db.defineCommand(macro.name, {
+      numberOfKeys: macro.key_num,
+      lua: fs.readFileSync(
+        path.resolve(__dirname, `../scripts/${macro.filename}.lua`),
+        {
+          encoding: 'utf8',
+        }
+      ),
+    });
   });
 
-  Configs.db.defineCommand('visitKey', {
-    numberOfKeys: 1,
-    lua: fs.readFileSync(path.resolve(__dirname, '../scripts/visit_key.lua'), {
-      encoding: 'utf8',
-    }),
+  /**
+   *
+   * Listening to Pub/Sub Channel
+   */
+  watcher.subscribe('g-ban', 'g-unban');
+  watcher.on('message', (channel: any, message: any) => {
+    switch (channel) {
+      case 'g-ban': {
+        // Set User to local ban list
+        const messageToken: string[] = message.split(':');
+        // prettier-ignore
+        if (!bannedKeys.has(messageToken[0]) || bannedKeys.get(messageToken[0]) !== parseInt(messageToken[1], 10)) {
+          bannedKeys.set(messageToken[0], parseInt(messageToken[1], 10));
+          localCache.del(messageToken[0]);
+        }
+      }
+      case 'g-unban': {
+        bannedKeys.del(message);
+      }
+    }
   });
 
   // localCache Synchronization
   async function synchronize(currentTime: number): Promise<void> {
-    await Configs.db.pipeline(localQueue).exec((err, res) => {
-      if (err) {
-        // tslint:disable-next-line: no-console
-        console.log(err);
-      } else {
-        console.log(
-          '[  RATELIMIT:  REDIS  ]\t\tWritten %d commands to redis',
-          localQueue.length
+    await db.pipeline(localQueue).exec((err, res) => {
+      if (err) logger(err);
+      else {
+        logger(
+          `${REDIS_CONSOLE_PREFIX('REDIS')}Written ${
+            localQueue.length
+          } commands to redis`
         );
+        // Update local LRU by redis' response
         res.forEach((resultValue: any, index: number) => {
-          if (
-            typeof resultValue[1] !== 'undefined' &&
-            resultValue[1] !== null
-          ) {
+          // prettier-ignore
+          if (typeof resultValue[1] !== 'undefined' && resultValue[1] !== null) {
             const tmpString = resultValue[1].split(':');
             const localReg = localCache.get(tmpString[0]);
             if (localReg) {
@@ -54,13 +87,12 @@ export = (Configs: GroundedConfigs) => {
                 remaining: parseInt(tmpString[1], 10),
                 uat: currentTime,
                 exp: localReg.exp,
-              });
+              }, micro_to_mili(localReg.exp));
             }
           }
         });
       }
     });
-    // Clear localQueue
     localQueue = [];
   }
 
@@ -89,25 +121,12 @@ export = (Configs: GroundedConfigs) => {
         // Decrease the value, or ground the user
         grounded = !(cacheReg.remaining > 0);
 
-        // Try to decrease Local Value
+        // Try to decrease localCache Value
         currentReg = {
           remaining: grounded ? 0 : --cacheReg.remaining,
           uat: grounded ? cacheReg.uat : currentTime,
           exp: cacheReg.exp,
         };
-
-        const tmpBucket = localBucket.get(userKey);
-        if (tmpBucket !== undefined) localBucket.set(userKey, tmpBucket - 1);
-
-        if (
-          grounded &&
-          (!bannedKeys.has(userKey) ||
-            bannedKeys.get(userKey) !== currentReg.uat)
-        ) {
-          // Set to local blacklist
-          bannedKeys.set(userKey, currentReg.exp);
-          localCache.delete(userKey);
-        }
 
         localQueue.push(['visitKey', userKey, currentReg.uat.toString()]);
         if (grounded) {
@@ -122,42 +141,31 @@ export = (Configs: GroundedConfigs) => {
           exp: currentTime + Configs.globalEXP,
         };
 
-        if (bannedReg) {
-          bannedKeys.delete(userKey);
-        }
-
-        localBucket.set(userKey, Configs.localThreshold);
-
         // Only key creation can trigger a redis pipeline directly
-        await Configs.db
+        await db
           .pipeline([
-            [
-              'createKey',
-              userKey,
-              currentReg.exp.toString(),
-              currentReg.uat.toString(),
-              currentReg.remaining.toString(),
-            ],
+            // prettier-ignore
+            ['createKey', userKey, currentReg.exp.toString(), currentReg.uat.toString(), currentReg.remaining.toString()],
           ])
           .exec((err, res) => {
-            if (err) {
-              // tslint:disable-next-line: no-console
-              console.log(err);
-            } else {
+            if (err) logger(err);
+            else {
               if (typeof res[0][1][0] !== 'undefined') {
                 currentReg = {
                   exp: res[0][1][0],
                   remaining: res[0][1][1],
                   uat: currentTime,
                 };
-                console.log(
-                  '[  RATELIMIT: REDIS  ]\t\tkey: %s has existed on Redis, decrease instead.',
-                  userKey
+                logger(
+                  `${REDIS_CONSOLE_PREFIX(
+                    'REDIS'
+                  )}key: ${userKey} has existed on Redis, decrease instead.`
                 );
               } else {
-                console.log(
-                  '[  RATELIMIT:  REDIS  ]\t\tWritten key: %s to Redis Server',
-                  userKey
+                logger(
+                  `${REDIS_CONSOLE_PREFIX(
+                    'REDIS'
+                  )}Written key: ${userKey} to Redis Server`
                 );
               }
             }
@@ -166,7 +174,7 @@ export = (Configs: GroundedConfigs) => {
     }
 
     // Update the localCache Value
-    localCache.set(userKey, currentReg);
+    localCache.set(userKey, currentReg, micro_to_mili(currentReg.exp));
 
     // Check for verbosity
     if (Configs.verbose) {
@@ -183,7 +191,7 @@ export = (Configs: GroundedConfigs) => {
     // Reponses
     ctx.set({
       'X-RateLimit-Remaining': currentReg.remaining.toString(),
-      'X-RateLimit-Reset': Math.floor(currentReg.exp / 1000000).toString(),
+      'X-RateLimit-Reset': micro_to_mili(currentReg.exp).toString(),
     });
     grounded ? (ctx.status = 429) : await next();
   };

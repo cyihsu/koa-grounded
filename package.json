@@ -19,12 +19,15 @@
   "dependencies": {
     "chalk": "^3.0.0",
     "ioredis": "^4.16.0",
-    "microtime-nodejs": "^1.0.0"
+    "lru-cache": "^5.1.1",
+    "microtime-nodejs": "^1.0.0",
+    "worker-loader": "^2.0.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",
     "@types/ioredis": "^4.14.9",
     "@types/koa": "^2.11.2",
+    "@types/lru-cache": "^5.1.0",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.9.2",
     "chai": "^4.2.0",
