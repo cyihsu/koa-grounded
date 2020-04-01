@@ -5,13 +5,7 @@ import microtime from 'microtime-nodejs';
 import fs from 'fs';
 import path from 'path';
 
-import {
-  iptoHex,
-  groundedVerbose,
-  logger,
-  micro_to_mili,
-  REDIS_CONSOLE_PREFIX,
-} from './utils';
+import { iptoHex, logger, micro_to_mili } from './utils';
 import { VisitorAttrs, GroundedConfigs, GroundedMacros } from './interfaces';
 
 export = (Configs: GroundedConfigs) => {
@@ -21,9 +15,8 @@ export = (Configs: GroundedConfigs) => {
   const db = new Redis(Configs.dbStr);
   const watcher = new Redis(Configs.dbStr);
 
-  const bannedKeys: LRU<string, number> = new LRU<string, number>(
-    Configs.cacheSize
-  );
+  // prettier-ignore
+  const bannedKeys: LRU<string, number> = new LRU<string, number>(Configs.cacheSize);
   // prettier-ignore
   const localCache: LRU<string, VisitorAttrs> = new LRU<string, VisitorAttrs>(Configs.cacheSize);
   let localQueue: string[][] = [];
@@ -50,32 +43,40 @@ export = (Configs: GroundedConfigs) => {
    */
   watcher.subscribe('g-ban', 'g-unban');
   watcher.on('message', (channel: any, message: any) => {
+    logger('REMOTE', 'RECV_MSG', [channel, message]);
+    const messageToken: string[] = message.split(':');
+    const [key, exp] = messageToken;
+    const expAsInt = parseInt(exp, 10);
     switch (channel) {
       case 'g-ban': {
         // Set User to local ban list
-        const messageToken: string[] = message.split(':');
         // prettier-ignore
-        if (!bannedKeys.has(messageToken[0]) || bannedKeys.get(messageToken[0]) !== parseInt(messageToken[1], 10)) {
-          bannedKeys.set(messageToken[0], parseInt(messageToken[1], 10));
-          localCache.del(messageToken[0]);
+        if (!bannedKeys.has(key) || bannedKeys.get(key) !== expAsInt) {
+          bannedKeys.set(key, expAsInt, micro_to_mili(expAsInt));
+          localCache.del(key);
         }
       }
       case 'g-unban': {
         bannedKeys.del(message);
+        localCache.set(
+          key,
+          {
+            exp: expAsInt,
+            remaining: Configs.ratelimit - 1,
+            uat: expAsInt,
+          },
+          micro_to_mili(expAsInt)
+        );
       }
     }
   });
 
   // localCache Synchronization
-  async function synchronize(currentTime: number): Promise<void> {
+  async function write_to_redis(currentTime: number): Promise<void> {
     await db.pipeline(localQueue).exec((err, res) => {
-      if (err) logger(err);
+      if (err) logger('ERROR', 'ERR', err);
       else {
-        logger(
-          `${REDIS_CONSOLE_PREFIX('REDIS')}Written ${
-            localQueue.length
-          } commands to redis`
-        );
+        logger('REMOTE', 'WRITTEN_MSG', [localQueue.length.toString()]);
         // Update local LRU by redis' response
         res.forEach((resultValue: any, index: number) => {
           // prettier-ignore
@@ -130,7 +131,7 @@ export = (Configs: GroundedConfigs) => {
 
         localQueue.push(['visitKey', userKey, currentReg.uat.toString()]);
         if (grounded) {
-          synchronize(currentTime);
+          write_to_redis(currentTime);
         }
       } else {
         // Else, initialize a new token
@@ -148,7 +149,7 @@ export = (Configs: GroundedConfigs) => {
             ['createKey', userKey, currentReg.exp.toString(), currentReg.uat.toString(), currentReg.remaining.toString()],
           ])
           .exec((err, res) => {
-            if (err) logger(err);
+            if (err) logger('ERR', 'ERR', err);
             else {
               if (typeof res[0][1][0] !== 'undefined') {
                 currentReg = {
@@ -156,17 +157,9 @@ export = (Configs: GroundedConfigs) => {
                   remaining: res[0][1][1],
                   uat: currentTime,
                 };
-                logger(
-                  `${REDIS_CONSOLE_PREFIX(
-                    'REDIS'
-                  )}key: ${userKey} has existed on Redis, decrease instead.`
-                );
+                logger('REMOTE', 'EXISTED_KEY', [userKey]);
               } else {
-                logger(
-                  `${REDIS_CONSOLE_PREFIX(
-                    'REDIS'
-                  )}Written key: ${userKey} to Redis Server`
-                );
+                logger('REMOTE', 'CREATED_KEY', [userKey]);
               }
             }
           });
@@ -178,14 +171,10 @@ export = (Configs: GroundedConfigs) => {
 
     // Check for verbosity
     if (Configs.verbose) {
-      groundedVerbose(
-        {
-          key: userKey,
-          isGrounded: grounded,
-          attrs: currentReg,
-        },
-        microtime.now() - currentTime
-      );
+      logger(grounded ? 'PERMIT' : 'GROUNDED', 'VERBOSE', [
+        { key: userKey, attrs: currentReg },
+        microtime.now() - currentTime,
+      ]);
     }
 
     // Reponses

@@ -15,7 +15,7 @@ if (not target_exp or tonumber(target_exp) < tonumber(ARGV[2])) then
     redis.call('ZADD', 'grounded-exp', ARGV[1], KEYS[1])
     redis.call('HSET', 'grounded-remaining', KEYS[1], ARGV[3])
     redis.call('ZREM', 'grounded-ban', KEYS[1])
-    redis.call('PUBLISH', 'g-unban', KEYS[1])
+    redis.call('PUBLISH', 'g-unban', KEYS[1]..":"..ARGV[1])
     return 1
 
 -- Avoiding key creation, decrease the remaining value instead

@@ -12,7 +12,6 @@ export interface GroundedConfigs {
 
 export interface VisitorEntry {
   key: string;
-  isGrounded: boolean;
   attrs: VisitorAttrs;
 }
 
