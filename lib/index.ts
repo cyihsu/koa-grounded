@@ -97,15 +97,17 @@ export = (Configs: GroundedConfigs) => {
       }
       case `${Configs.partitionKey}-unban`: {
         bannedKeys.del(message);
-        localCache.set(
-          key,
-          {
-            exp: expAsInt,
-            remaining: Configs.ratelimit - 1,
-            uat: expAsInt,
-          },
-          micro_to_mili(expAsInt)
-        );
+        if (!localCache.get(key)) {
+          localCache.set(
+            key,
+            {
+              exp: expAsInt,
+              remaining: Configs.ratelimit - 1,
+              uat: expAsInt,
+            },
+            micro_to_mili(expAsInt)
+          );
+        }
       }
     }
   });

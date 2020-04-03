@@ -1,5 +1,5 @@
 import Koa from 'koa';
-import Grounded from '../dist';
+import Grounded from '../lib';
 
 import dotenv from 'dotenv';
 
