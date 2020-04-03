@@ -1,6 +1,6 @@
 {
   "name": "koa-grounded",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A distributed rate-limit middleware using fixed-window algorithm and Pub/Sub pattern",
   "repository": {
     "type": "git",
