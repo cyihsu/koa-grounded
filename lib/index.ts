@@ -24,8 +24,12 @@ export = (Configs: GroundedConfigs) => {
 
   /*
    * Init worker (Retrieve banned keys)
+   *
+   * Note: Since expired keys has been pruned locally when request received,
+   *       There's no need to publish such message to the channel
    */
   db.multi()
+    // prettier-ignore
     .zrevrangebyscore(
       `${Configs.partitionKey}-ban`,
       '+inf',
@@ -59,6 +63,9 @@ export = (Configs: GroundedConfigs) => {
 
   /**
    * Listening to changes in a certain interval
+   *
+   * Note: To avoid intruction blocking on Redis,
+   *       Split into two smaller instructions batch
    */
   setInterval(() => {
     const currentTime = microtime.now();
