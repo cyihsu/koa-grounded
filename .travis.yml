@@ -1,0 +1,25 @@
+language: node_js
+
+node_js:
+  - '6'
+  - '8'
+  - '9'
+  - '10'
+  - '11'
+  - '12'
+
+script:
+  - yarn test
+
+branches:
+  only:
+    - master
+
+deploy:
+  - provider: script
+    script: yarn install --frozen-lockfile && yarn semantic-release
+    skip_cleanup: true
+    on:
+      tags: false
+      all_branches: true
+      node: '10'

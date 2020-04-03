@@ -1,10 +1,10 @@
 {
   "name": "koa-grounded",
-  "version": "0.0.5",
+  "version": "0.0.0-development",
   "description": "A distributed rate-limit middleware using fixed-window algorithm and Pub/Sub pattern",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cyihsu/koa-grounded.git"
+    "url": "https://github.com/cyihsu/koa-grounded.git"
   },
   "author": "Chen-Yi Hsu",
   "license": "MIT",
@@ -17,7 +17,8 @@
   "scripts": {
     "build": "tsc",
     "example": "ts-node-dev --respawn example/index.ts",
-    "test": "mocha --require ts-node/register test/*.ts"
+    "test": "mocha --require ts-node/register test/*.ts",
+    "semantic-release": "semantic-release"
   },
   "dependencies": {
     "chalk": "^3.0.0",
@@ -43,7 +44,8 @@
     "ts-node": "^8.8.1",
     "ts-node-dev": "^1.0.0-pre.44",
     "tslint": "^6.1.0",
-    "typescript": "^3.8.3"
+    "typescript": "^3.8.3",
+    "semantic-release": "^17.0.4"
   },
   "husky": {
     "hooks": {
