@@ -16,6 +16,7 @@ jobs:
       script:
         - yarn test
     - stage: releases
+      script: yarn build
       deploy:
         provider: script
         skip_cleanup: true
