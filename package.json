@@ -62,5 +62,10 @@
     "example": "example",
     "lib": "lib",
     "test": "test"
-  }
+  },
+  "files": [
+    "/scripts",
+    "/dist",
+    "package.json"
+  ]
 }
