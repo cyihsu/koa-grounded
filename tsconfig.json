@@ -14,8 +14,7 @@
     "allowUmdGlobalAccess": true /* Allow accessing UMD globals from modules. */,
 
     /* Advanced Options */
-    "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */,
-    "lib": ["webworker", "es6", "scripthost"]
+    "forceConsistentCasingInFileNames": true /* Disallow inconsistently-cased references to the same file. */
   },
   "include": ["lib/**/*"]
 }

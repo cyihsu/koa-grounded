@@ -1,5 +1,5 @@
 import Koa from 'koa';
-import Grounded from '../lib';
+import Grounded from '../dist';
 
 import dotenv from 'dotenv';
 
@@ -10,12 +10,12 @@ dotenv.config();
 
 const RateLimiter = Grounded({
   partitionKey: 'grounded',
-  ratelimit: 1000,
-  globalEXP: 1 * 60 * 1000 * 1000,
+  ratelimit: 10,
+  globalEXP: 1 * 10 * 1000 * 1000,
   timeout: 2000,
   cacheSize: 500,
   dbStr: 'redis://127.0.0.1:6379/',
-  verbose: false,
+  verbose: true,
 });
 
 const PingPong = async (ctx: Koa.Context) => {

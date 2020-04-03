@@ -23,6 +23,26 @@ export = (Configs: GroundedConfigs) => {
   let lastCommited: number = microtime.now();
 
   /*
+   * Init worker (Retrieve banned keys)
+   */
+  db.multi()
+    .zrevrangebyscore(
+      `${Configs.partitionKey}-ban`,
+      '+inf',
+      lastCommited,
+      'WITHSCORES'
+    )
+    .zremrangebyscore(`${Configs.partitionKey}-ban`, '+inf', lastCommited)
+    .exec((err, result) => {
+      if (err) logger(Configs.verbose, 'ERR', 'ERR', err);
+      else {
+        const [key, exp] = result[0][1];
+        const expParse: number = parseInt(exp, 10);
+        bannedKeys.set(key, expParse, micro_to_mili(expParse));
+      }
+    });
+
+  /*
    * Redis-Lua Macros Definitions
    */
   GroundedMacros.forEach((macro) => {
