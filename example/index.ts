@@ -9,13 +9,13 @@ const appA = new Koa();
 dotenv.config();
 
 const RateLimiter = Grounded({
-  ratelimit: 10,
-  globalEXP: 1 * 10 * 1000 * 1000,
+  partitionKey: 'grounded',
+  ratelimit: 1000,
+  globalEXP: 1 * 60 * 1000 * 1000,
   timeout: 2000,
-  localThreshold: 10,
   cacheSize: 500,
-  dbStr: process.env.REDIS_HOST,
-  verbose: true,
+  dbStr: 'redis://127.0.0.1:6379/',
+  verbose: false,
 });
 
 const PingPong = async (ctx: Koa.Context) => {

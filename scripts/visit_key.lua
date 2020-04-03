@@ -4,22 +4,23 @@
 --
 -- Params: KEYS[1] := userKey,
 --         ARGV[1] := uat
+--         ARGV[2] := partitionKey
 
-local target_exp = redis.call('ZSCORE','grounded-exp', KEYS[1])
-local target_remaining = tonumber(redis.call('HGET','grounded-remaining', KEYS[1]))
+local target_exp = redis.call('ZSCORE', ARGV[2]..'-exp', KEYS[1])
+local target_remaining = tonumber(redis.call('HGET', ARGV[2]..'-remaining', KEYS[1]))
 
 -- If the key is not yet expired
 if (tonumber(target_exp) > tonumber(ARGV[1])) then
     if (target_remaining > 0) then
-        redis.call('HINCRBY', 'grounded-remaining', KEYS[1], '-1')
+        redis.call('HINCRBY', ARGV[2]..'-remaining', KEYS[1], '-1')
     else
-        redis.call('ZADD', 'grounded-ban', target_exp, KEYS[1])
-        redis.call('ZREM', 'grounded-exp', KEYS[1])
-        redis.call('HDEL', 'grounded-remaining', KEYS[1])
-        redis.call('PUBLISH', 'g-ban', KEYS[1]..':'..target_exp)
+        redis.call('ZADD', ARGV[2]..'-ban', target_exp, KEYS[1])
+        redis.call('ZREM', ARGV[2]..'-exp', KEYS[1])
+        redis.call('HDEL', ARGV[2]..'-remaining', KEYS[1])
+        redis.call('PUBLISH', ARGV[2]..'-ban', KEYS[1]..':'..target_exp)
     end
 
-    local result = tonumber(redis.call('HGET','grounded-remaining', KEYS[1]))
+    local result = tonumber(redis.call('HGET', ARGV[2]..'-remaining', KEYS[1]))
     if (result) then
         return KEYS[1]..":"..result
     else

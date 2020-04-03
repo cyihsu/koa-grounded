@@ -1,9 +1,11 @@
 import chalk from 'chalk';
-import { VisitorAttrs, VisitorEntry } from './interfaces';
+import { VisitorEntry } from './interfaces';
 
-// Redis' Key-length Reduction
-// note: length of redis key might affect connection latency to redis,
-//       using hex as key might save 33% of data size
+/***
+ * Redis' Key-length Reduction
+ * note: length of redis key might affect connection latency to redis,
+ *       using hex as key might save 33% of data size
+ */
 export function iptoHex(IP: string): string {
   const ipHex: string = IP.split('.')
     .reduce((accumulator: number, current: string) => {
@@ -17,16 +19,26 @@ export function iptoHex(IP: string): string {
   return `0x${ipHex === '0' ? '00000000' : ipHex}`;
 }
 
-// logger
-export function logger(subject: string, type: string, args: any): void {
-  // tslint:disable-next-line: no-console
-  console.log(
-    `${_CONSOLE_PREFIX(subject)}${_loggerInfo[type].apply(null, args)}`
-  );
+/***
+ * Logger
+ */
+export function logger(
+  verbose: boolean = false,
+  subject: string,
+  type: string,
+  args: any
+): void {
+  if (verbose) {
+    // tslint:disable-next-line: no-console
+    console.log(
+      `${_CONSOLE_PREFIX(subject)}${_loggerInfo[type].apply(null, args)}`
+    );
+  }
 }
 
 const _CONSOLE_PREFIX = (messageType: string) =>
   `RATELIMIT/${_MESSAGE_COLOR(messageType)}\t-> `;
+
 const _MESSAGE_COLOR = (messageType: string) => {
   switch (messageType) {
     case 'GROUNDED':
@@ -37,10 +49,13 @@ const _MESSAGE_COLOR = (messageType: string) => {
       return messageType;
   }
 };
+
 const _loggerInfo: any = {
   ERR: (ERR_MSG: any) => ERR_MSG,
   EXISTED_KEY: (key: string) =>
     `key: ${key} has existed on Redis, decrease instead.`,
+  BANNED_KEY: (key: string) =>
+    `key: ${key} has existed on Redis, but has already exceeds ratelimit.`,
   CREATED_KEY: (key: string) => `Written key: ${key} to Redis Server`,
   WRITTEN_MSG: (writtenCommandsSize: string) =>
     `Written ${writtenCommandsSize} commands to redis`,
@@ -53,7 +68,13 @@ const _loggerInfo: any = {
     `taken_time/ ${chalk.green(diffTime)}μs`,
 };
 
-// microsecond to milisecond
+/***
+ * Transform datatype
+ */
 export function micro_to_mili(microNumber: number): number {
   return Math.floor(microNumber / 1000000);
+}
+
+export function isExist(data: any): boolean {
+  return typeof data !== 'undefined' && data !== null;
 }

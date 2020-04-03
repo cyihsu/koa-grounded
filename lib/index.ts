@@ -1,11 +1,11 @@
 import Koa from 'koa';
 import Redis from 'ioredis';
 import LRU from 'lru-cache';
-import microtime from 'microtime-nodejs';
+import microtime from 'microtime';
 import fs from 'fs';
 import path from 'path';
 
-import { iptoHex, logger, micro_to_mili } from './utils';
+import { iptoHex, logger, micro_to_mili, isExist } from './utils';
 import { VisitorAttrs, GroundedConfigs, GroundedMacros } from './interfaces';
 
 export = (Configs: GroundedConfigs) => {
@@ -20,9 +20,9 @@ export = (Configs: GroundedConfigs) => {
   // prettier-ignore
   const localCache: LRU<string, VisitorAttrs> = new LRU<string, VisitorAttrs>(Configs.cacheSize);
   let localQueue: string[][] = [];
+  let lastCommited: number = microtime.now();
 
   /*
-   *
    * Redis-Lua Macros Definitions
    */
   GroundedMacros.forEach((macro) => {
@@ -38,17 +38,28 @@ export = (Configs: GroundedConfigs) => {
   });
 
   /**
-   *
+   * Listening to changes in a certain interval
+   */
+  setInterval(() => {
+    const currentTime = microtime.now();
+    _write_to_redis(currentTime);
+    lastCommited = currentTime;
+    _update_local(currentTime);
+  }, Configs.timeout);
+
+  /**
    * Listening to Pub/Sub Channel
    */
-  watcher.subscribe('g-ban', 'g-unban');
+  watcher.subscribe(
+    `${Configs.partitionKey}-ban`,
+    `${Configs.partitionKey}-unban`
+  );
   watcher.on('message', (channel: any, message: any) => {
-    logger('REMOTE', 'RECV_MSG', [channel, message]);
-    const messageToken: string[] = message.split(':');
-    const [key, exp] = messageToken;
+    logger(Configs.verbose, 'REMOTE', 'RECV_MSG', [channel, message]);
+    const [key, exp] = message.split(':');
     const expAsInt = parseInt(exp, 10);
     switch (channel) {
-      case 'g-ban': {
+      case `${Configs.partitionKey}-ban`: {
         // Set User to local ban list
         // prettier-ignore
         if (!bannedKeys.has(key) || bannedKeys.get(key) !== expAsInt) {
@@ -56,7 +67,7 @@ export = (Configs: GroundedConfigs) => {
           localCache.del(key);
         }
       }
-      case 'g-unban': {
+      case `${Configs.partitionKey}-unban`: {
         bannedKeys.del(message);
         localCache.set(
           key,
@@ -71,30 +82,48 @@ export = (Configs: GroundedConfigs) => {
     }
   });
 
-  // localCache Synchronization
-  async function write_to_redis(currentTime: number): Promise<void> {
-    await db.pipeline(localQueue).exec((err, res) => {
-      if (err) logger('ERROR', 'ERR', err);
-      else {
-        logger('REMOTE', 'WRITTEN_MSG', [localQueue.length.toString()]);
-        // Update local LRU by redis' response
-        res.forEach((resultValue: any, index: number) => {
-          // prettier-ignore
-          if (typeof resultValue[1] !== 'undefined' && resultValue[1] !== null) {
-            const tmpString = resultValue[1].split(':');
-            const localReg = localCache.get(tmpString[0]);
-            if (localReg) {
-              localCache.set(tmpString[0], {
-                remaining: parseInt(tmpString[1], 10),
-                uat: currentTime,
-                exp: localReg.exp,
-              }, micro_to_mili(localReg.exp));
+  /**
+   * Update local cache
+   */
+  async function _update_local(currentTime: number): Promise<void> {
+    const queryTmp = localCache.keys();
+    if (queryTmp.length > 0) {
+      await db
+        .hmget(`${Configs.partitionKey}-remaining`, ...queryTmp)
+        .then((res) => {
+          res.forEach((result: any, index: number) => {
+            const cacheUpdateTmp = localCache.get(queryTmp[index]);
+            if (isExist(cacheUpdateTmp)) {
+              localCache.set(
+                queryTmp[index],
+                {
+                  exp: cacheUpdateTmp!.exp,
+                  remaining: parseInt(result, 10),
+                  uat: currentTime,
+                },
+                micro_to_mili(cacheUpdateTmp!.exp)
+              );
             }
-          }
+          });
         });
-      }
-    });
-    localQueue = [];
+    }
+  }
+
+  /**
+   * Update localCache with remote response
+   */
+  async function _write_to_redis(currentTime: number): Promise<void> {
+    if (localQueue.length > 0) {
+      await db.pipeline(localQueue).exec((err) => {
+        if (err) logger(Configs.verbose, 'ERROR', 'ERR', err);
+        else {
+          logger(Configs.verbose, 'REMOTE', 'WRITTEN_MSG', [
+            localQueue.length.toString(),
+          ]);
+        }
+      });
+      localQueue = [];
+    }
   }
 
   return async (ctx: Koa.Context, next: () => Promise<any>) => {
@@ -129,9 +158,14 @@ export = (Configs: GroundedConfigs) => {
           exp: cacheReg.exp,
         };
 
-        localQueue.push(['visitKey', userKey, currentReg.uat.toString()]);
+        localQueue.push([
+          'visitKey',
+          userKey,
+          currentReg.uat.toString(),
+          Configs.partitionKey,
+        ]);
         if (grounded) {
-          write_to_redis(currentTime);
+          _write_to_redis(currentTime);
         }
       } else {
         // Else, initialize a new token
@@ -146,36 +180,44 @@ export = (Configs: GroundedConfigs) => {
         await db
           .pipeline([
             // prettier-ignore
-            ['createKey', userKey, currentReg.exp.toString(), currentReg.uat.toString(), currentReg.remaining.toString()],
+            ['createKey', userKey, currentReg.exp.toString(), currentReg.uat.toString(), currentReg.remaining.toString(), Configs.partitionKey],
           ])
           .exec((err, res) => {
-            if (err) logger('ERR', 'ERR', err);
+            if (err) logger(Configs.verbose, 'ERR', 'ERR', err);
             else {
-              if (typeof res[0][1][0] !== 'undefined') {
+              if (isExist(res[0][1][0])) {
+                const remoteRemains = parseInt(res[0][1][1], 10);
+                const remoteExp = parseInt(res[0][1][0], 10);
                 currentReg = {
-                  exp: res[0][1][0],
-                  remaining: res[0][1][1],
+                  exp: remoteExp,
+                  remaining: remoteRemains,
                   uat: currentTime,
                 };
-                logger('REMOTE', 'EXISTED_KEY', [userKey]);
+                if (remoteRemains > 0) {
+                  grounded = false;
+                  logger(Configs.verbose, 'REMOTE', 'EXISTED_KEY', [userKey]);
+                } else {
+                  grounded = true;
+                  logger(Configs.verbose, 'REMOTE', 'BANNED_KEY', [userKey]);
+                }
               } else {
-                logger('REMOTE', 'CREATED_KEY', [userKey]);
+                logger(Configs.verbose, 'REMOTE', 'CREATED_KEY', [userKey]);
               }
             }
           });
       }
     }
-
-    // Update the localCache Value
-    localCache.set(userKey, currentReg, micro_to_mili(currentReg.exp));
+    if (grounded === false) {
+      // Update the localCache Value
+      localCache.set(userKey, currentReg, micro_to_mili(currentReg.exp));
+    } else {
+      bannedKeys.set(userKey, currentReg.exp, micro_to_mili(currentReg.exp));
+      localCache.del(userKey);
+    }
 
     // Check for verbosity
-    if (Configs.verbose) {
-      logger(grounded ? 'PERMIT' : 'GROUNDED', 'VERBOSE', [
-        { key: userKey, attrs: currentReg },
-        microtime.now() - currentTime,
-      ]);
-    }
+    // prettier-ignore
+    logger(Configs.verbose, !grounded ? 'PERMIT' : 'GROUNDED', 'VERBOSE', [{ key: userKey, attrs: currentReg }, microtime.now() - currentTime]);
 
     // Reponses
     ctx.set({
