@@ -1,18 +1,15 @@
-import IORedis from 'ioredis';
-
 export interface GroundedConfigs {
+  partitionKey: string;
   ratelimit: number;
   globalEXP: number;
   timeout: number;
   cacheSize: number;
-  localThreshold: number;
   dbStr: string;
   verbose?: boolean;
 }
 
 export interface VisitorEntry {
   key: string;
-  isGrounded: boolean;
   attrs: VisitorAttrs;
 }
 

@@ -1,8 +1,11 @@
 {
   "name": "koa-grounded",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A distributed rate-limit middleware using fixed-window algorithm and Pub/Sub pattern",
-  "repository": "cyihsu/koa-grounded",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyihsu/koa-grounded.git"
+  },
   "author": "Chen-Yi Hsu",
   "license": "MIT",
   "keywords": [
@@ -20,14 +23,14 @@
     "chalk": "^3.0.0",
     "ioredis": "^4.16.0",
     "lru-cache": "^5.1.1",
-    "microtime-nodejs": "^1.0.0",
-    "worker-loader": "^2.0.0"
+    "microtime": "^3.0.0"
   },
   "devDependencies": {
     "@types/chai": "^4.2.11",
     "@types/ioredis": "^4.14.9",
     "@types/koa": "^2.11.2",
     "@types/lru-cache": "^5.1.0",
+    "@types/microtime": "^2.1.0",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.9.2",
     "chai": "^4.2.0",
@@ -49,5 +52,15 @@
   },
   "prettier": {
     "singleQuote": true
+  },
+  "bugs": {
+    "url": "https://github.com/cyihsu/koa-grounded/issues"
+  },
+  "homepage": "https://github.com/cyihsu/koa-grounded#readme",
+  "main": "index.js",
+  "directories": {
+    "example": "example",
+    "lib": "lib",
+    "test": "test"
   }
 }

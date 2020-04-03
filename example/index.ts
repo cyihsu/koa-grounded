@@ -1,5 +1,5 @@
 import Koa from 'koa';
-import Grounded from '../lib';
+import Grounded from '../dist';
 
 import dotenv from 'dotenv';
 
@@ -9,12 +9,12 @@ const appA = new Koa();
 dotenv.config();
 
 const RateLimiter = Grounded({
+  partitionKey: 'grounded',
   ratelimit: 10,
   globalEXP: 1 * 10 * 1000 * 1000,
   timeout: 2000,
-  localThreshold: 10,
   cacheSize: 500,
-  dbStr: process.env.REDIS_HOST,
+  dbStr: 'redis://127.0.0.1:6379/',
   verbose: true,
 });
 
