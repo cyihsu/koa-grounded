@@ -1,6 +1,6 @@
 {
   "name": "koa-grounded",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "A distributed rate-limit middleware using fixed-window algorithm and Pub/Sub pattern",
   "repository": {
     "type": "git",
@@ -57,7 +57,7 @@
     "url": "https://github.com/cyihsu/koa-grounded/issues"
   },
   "homepage": "https://github.com/cyihsu/koa-grounded#readme",
-  "main": "index.js",
+  "main": "./dist/index.js",
   "directories": {
     "example": "example",
     "lib": "lib",

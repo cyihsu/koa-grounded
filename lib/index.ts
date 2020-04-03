@@ -72,6 +72,7 @@ export = (Configs: GroundedConfigs) => {
     _write_to_redis(currentTime);
     lastCommited = currentTime;
     _update_local(currentTime);
+    db.ping();
   }, Configs.timeout);
 
   /**
