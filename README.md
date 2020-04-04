@@ -62,7 +62,7 @@ See the document [#API](#API) for further informations.
 | ratelimit    | `number`  | Ratelimit for each user's session |
 | globalEXP    | `number`  | Expiration time for user's ratelimit session, in `microseconds`(10^-6 seconds) unit |
 | timeout      | `number`  | Worker-Redis synchronization intervals, in `miliseconds`(10^-3 seconds) unit |
-| cacheSize    | `number`  | Maxmimum key size stored in local LRU cache |
+| cacheSize    | `number`  | Maxmimum key size stored on local LRU cache |
 | dbStr        | `string`  | Connection string to the Redis instance, see [luin/ioredis#connect-to-redis](https://github.com/luin/ioredis#connect-to-redis) for further information |
 | verbose      | `boolean` | Showing access log informations or not |
 
