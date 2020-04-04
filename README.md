@@ -73,8 +73,87 @@ $ yarn test
 ```
 
 # Overview
+## Concept
 
 ## Benchmark
+### One Worker, local Redis
+_(Redis Instance on Intel Core i7 9850H, 16GB RAM, macOS 10.15.3)_
+
+#### Ping TTL
+```shell
+--- localhost ping statistics ---
+20 packets transmitted, 20 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 0.050/0.093/0.113/0.017 ms
+```
+
+#### using koajs/ratelimit
+```shell
+➜  ~ wrk -t12 -c1200 -d5s
+Running 5s test
+  12 threads and 1200 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    34.73ms   20.94ms 627.03ms   81.09%
+    Req/Sec   760.13    236.27     1.42k    74.61%
+  39505 requests in 5.07s, 11.05MB read
+  Socket errors: connect 0, read 623, write 0, timeout 0
+  Non-2xx or 3xx responses: 38505
+Requests/sec:   7794.90
+Transfer/sec:      2.18MB
+```
+
+#### our implementation
+```shell
+➜  ~ wrk -t12 -c1200 -d5s
+Running 5s test
+  12 threads and 1200 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    13.74ms   11.99ms 479.43ms   98.00%
+    Req/Sec     1.53k   592.69     3.90k    77.36%
+  84128 requests in 5.10s, 18.43MB read
+  Socket errors: connect 0, read 529, write 0, timeout 0
+  Non-2xx or 3xx responses: 83128
+Requests/sec:  16500.27
+Transfer/sec:      3.61MB
+```
+
+### One Worker, remote Redis
+_(Redis Instance located on TANet, vSphere6.7, 1vCPU 2GB RAM, CentOS7 + docker 19.03)_
+
+#### Ping TTL
+```shell
+--- Remote-Redis ping statistics ---
+20 packets transmitted, 20 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 19.858/67.130/250.806/61.965 ms
+```
+
+#### using koajs/ratelimit
+```shell
+➜  ~ wrk -t12 -c1200 -d5s
+Running 5s test
+  12 threads and 1200 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   129.69ms   56.67ms 632.29ms   71.43%
+    Req/Sec   155.99     71.33   323.00     65.16%
+  7712 requests in 5.10s, 2.10MB read
+  Socket errors: connect 0, read 625, write 0, timeout 0
+  Non-2xx or 3xx responses: 6712
+Requests/sec:   1513.19
+Transfer/sec:    422.69KB
+```
+#### our implementation
+```shell
+➜  ~ wrk -t12 -c1200 -d5s
+Running 5s test
+  12 threads and 1200 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    16.75ms   12.07ms 449.36ms   76.08%
+    Req/Sec     1.48k   526.48     3.13k    74.82%
+  81097 requests in 5.10s, 17.76MB read
+  Socket errors: connect 0, read 613, write 0, timeout 0
+  Non-2xx or 3xx responses: 80097
+Requests/sec:  15899.12
+Transfer/sec:      3.48MB
+```
 
 # Roadmap
   - [ ] Increase Unit Test Coverage
