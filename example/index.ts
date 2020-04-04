@@ -29,6 +29,6 @@ appA.use(RateLimiter);
 appA.use(PingPong);
 
 // Using IPv4 instead of IPv6;
-appA.listen(4000, '0.0.0.0');
+appA.listen(parseInt(process.argv[2], 10), '0.0.0.0');
 // tslint:disable-next-line: no-console
-console.log('listening on port 4000');
+console.log(`listening on port ${process.argv[2]}`);
