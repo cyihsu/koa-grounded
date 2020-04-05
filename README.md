@@ -78,12 +78,12 @@ $ yarn test
 ### Introduction
 Since Redis is fast enough for its in-memory data operations, the bottleneck of a Redis connection is the **Round-Trip Time(RTT)**, which may dramatically affects throughputs of services having Redis as the centralized datastore.
 
-This approach implemented a **Availability-Partition tolerance(AP)** approach using pipelined Lua scripts, LRU cache and Pub/Sub to optimize the throughput of the Rate-Limit service, and it is also capable of:
+This approach implemented a **Eventually consistency and Availability-Partition tolerance(AP)** approach using **pipelined Lua scripts**, **LRU cache** and **Pub/Sub** to optimize the throughput of the Rate-Limit service, and it is also capable of:
   - [X] sharing states among all workers
   - [X] key-space partitioning
   - [X] Ratelimiting
 
-As a result, we can **achieve 10x faster approach** than normal not pipelined Redis approach with such optimization(See [#Benchmark](#Benchmark) for details).
+As a result, we can **achieve 10x faster** than normal non-pipelined Redis approach with such optimization(See [#Benchmark](#Benchmark) for details).
 
 ### Implementation
 WIP
