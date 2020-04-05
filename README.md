@@ -31,8 +31,8 @@ app.proxy = true;
 
 const RateLimiter = Grounded({
   partitionKey: 'grounded',
-  ratelimit: 10,
-  globalEXP: 1 * 10 * 1000 * 1000, // expiration time in μs
+  ratelimit: 1000,
+  globalEXP: 60 * 60 * 1000 * 1000, // expiration time in μs
   timeout: 2000,
   cacheSize: 500,
   dbStr: 'redis://127.0.0.1:6379/',
@@ -62,7 +62,7 @@ See the document [#API](#API) for further informations.
 | partitionKey | `string`  | A partition key for current Rate-Limiter to listen, will create `${partitionKey}-exp`, `${partitionKey}-remaining` and `${partitionKey}-ban` keys on Redis Instance, and subscribe to `${partitionKey}-ban` and `${partitionKey}-unban` channels |
 | ratelimit    | `number`  | Ratelimit for each user's session |
 | globalEXP    | `number`  | Expiration time for user's ratelimit session, in `microseconds`(10^-6 seconds) unit |
-| timeout      | `number`  | Worker-Redis synchronization intervals, in `miliseconds`(10^-3 seconds) unit |
+| timeout      | `number`  | Worker-Redis synchronization intervals, in `miliseconds`(10^-3 seconds) unit, it is suggested to modify the value as fast as the worker localQueue size reaches MTU size |
 | cacheSize    | `number`  | Maxmimum key size stored on local LRU cache |
 | dbStr        | `string`  | Connection string to the Redis instance, see [luin/ioredis#connect-to-redis](https://github.com/luin/ioredis#connect-to-redis) for further information |
 | verbose      | `boolean` | Showing access log informations or not |
@@ -75,6 +75,18 @@ $ yarn test
 
 # Overview
 ## Concept
+### Introduction
+Since Redis is fast enough for its in-memory data operations, the bottleneck of a Redis connection is the **Round-Trip Time(RTT)**, which may dramatically affects throughputs of services having Redis as the centralized datastore.
+
+This approach implemented a **Availability-Partition tolerance(AP)** approach using pipelined Lua scripts, LRU cache and Pub/Sub to optimize the throughput of the Rate-Limit service, and it is also capable of:
+  - [X] sharing states among all workers
+  - [X] key-space partitioning
+  - [X] Ratelimiting
+
+As a result, we can **achieve 10x faster approach** than normal not pipelined Redis approach with such optimization(See [#Benchmark](#Benchmark) for details).
+
+### Implementation
+WIP
 
 ## Benchmark
 ### One Worker, local Redis
@@ -157,6 +169,7 @@ Transfer/sec:      3.48MB
 ```
 
 # Roadmap
+  - [ ] Worker-Threads
   - [ ] Increase Unit Test Coverage
   - [ ] Support for other Redis Client
   - [ ] LUA script for cleaning expired keys on Redis
