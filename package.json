@@ -10,7 +10,7 @@
   "license": "MIT",
   "keywords": [
     "ratelimit",
-    "ratelimitter",
+    "ratelimiter",
     "DRL",
     "distributed"
   ],
