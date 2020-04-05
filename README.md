@@ -3,6 +3,7 @@
 
 [![Build Status](https://travis-ci.org/cyihsu/koa-grounded.svg?branch=master)](https://travis-ci.org/cyihsu/koa-grounded)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcyihsu%2Fkoa-grounded.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcyihsu%2Fkoa-grounded?ref=badge_shield)
 
 [![asciicast](https://asciinema.org/a/JDWi8oUmqbLNjZL4gakvhJa3n.svg)](https://asciinema.org/a/JDWi8oUmqbLNjZL4gakvhJa3n)
 <p align="center">
@@ -162,3 +163,6 @@ Transfer/sec:      3.48MB
 
 # License
 [MIT](https://github.com/cyihsu/koa-grounded/blob/master/LICENSE)
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcyihsu%2Fkoa-grounded.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcyihsu%2Fkoa-grounded?ref=badge_large)
