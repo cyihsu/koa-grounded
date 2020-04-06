@@ -92,7 +92,7 @@ WIP
 ### One Worker, local Redis
 _(Redis Instance on Intel Core i7 9850H, 16GB RAM, macOS 10.15.3)_
 
-#### Ping TTL
+#### Ping RTT
 ```shell
 --- localhost ping statistics ---
 20 packets transmitted, 20 packets received, 0.0% packet loss
@@ -132,7 +132,7 @@ Transfer/sec:      3.61MB
 ### One Worker, remote Redis
 _(Redis Instance located on TANet, vSphere6.7, 1vCPU 2GB RAM, CentOS7 + docker 19.03)_
 
-#### Ping TTL
+#### Ping RTT
 ```shell
 --- Remote-Redis ping statistics ---
 20 packets transmitted, 20 packets received, 0.0% packet loss
