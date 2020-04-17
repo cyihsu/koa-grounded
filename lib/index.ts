@@ -223,13 +223,13 @@ export = (Configs: GroundedConfigs) => {
                   remaining: remoteRemains,
                   uat: currentTime,
                 };
-                if (remoteRemains > 0) {
-                  grounded = false;
-                  logger(Configs.verbose, 'REMOTE', 'EXISTED_KEY', [userKey]);
-                } else {
-                  grounded = true;
-                  logger(Configs.verbose, 'REMOTE', 'BANNED_KEY', [userKey]);
-                }
+                grounded = remoteRemains === 0;
+                logger(
+                  Configs.verbose,
+                  'REMOTE',
+                  remoteRemains > 0 ? 'EXISTED_KEY' : 'BANNED_KEY',
+                  [userKey]
+                );
               } else {
                 logger(Configs.verbose, 'REMOTE', 'CREATED_KEY', [userKey]);
               }
