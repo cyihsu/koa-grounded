@@ -1,8 +1,10 @@
 # koa-grounded
-> A distributed rate-limit middleware for Koa 2, inspired by Dcard's intern prelimary project.
+> A distributed rate-limit middleware for Koa 2, inspired by Dcard's intern preliminary project.
 
 [![Build Status](https://travis-ci.org/cyihsu/koa-grounded.svg?branch=master)](https://travis-ci.org/cyihsu/koa-grounded)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
+[![Weekly Downloads](https://img.shields.io/npm/dw/koa-grounded)](https://img.shields.io/npm/dw/koa-grounded)
+[![HitCount](http://hits.dwyl.com/cyihsu/koa-grounded.svg)](http://hits.dwyl.com/cyihsu/koa-grounded)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcyihsu%2Fkoa-grounded.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcyihsu%2Fkoa-grounded?ref=badge_shield)
 
 [![asciicast](https://asciinema.org/a/JDWi8oUmqbLNjZL4gakvhJa3n.svg)](https://asciinema.org/a/JDWi8oUmqbLNjZL4gakvhJa3n)
@@ -31,8 +33,8 @@ app.proxy = true;
 
 const RateLimiter = Grounded({
   partitionKey: 'grounded',
-  ratelimit: 10,
-  globalEXP: 1 * 10 * 1000 * 1000, // expiration time in μs
+  ratelimit: 1000,
+  globalEXP: 60 * 60 * 1000 * 1000, // expiration time in μs
   timeout: 2000,
   cacheSize: 500,
   dbStr: 'redis://127.0.0.1:6379/',
@@ -62,7 +64,7 @@ See the document [#API](#API) for further informations.
 | partitionKey | `string`  | A partition key for current Rate-Limiter to listen, will create `${partitionKey}-exp`, `${partitionKey}-remaining` and `${partitionKey}-ban` keys on Redis Instance, and subscribe to `${partitionKey}-ban` and `${partitionKey}-unban` channels |
 | ratelimit    | `number`  | Ratelimit for each user's session |
 | globalEXP    | `number`  | Expiration time for user's ratelimit session, in `microseconds`(10^-6 seconds) unit |
-| timeout      | `number`  | Worker-Redis synchronization intervals, in `miliseconds`(10^-3 seconds) unit |
+| timeout      | `number`  | Worker-Redis synchronization intervals, in `miliseconds`(10^-3 seconds) unit, it is suggested to modify the value as fast as the worker localQueue size reaches MTU size |
 | cacheSize    | `number`  | Maxmimum key size stored on local LRU cache |
 | dbStr        | `string`  | Connection string to the Redis instance, see [luin/ioredis#connect-to-redis](https://github.com/luin/ioredis#connect-to-redis) for further information |
 | verbose      | `boolean` | Showing access log informations or not |
@@ -75,12 +77,24 @@ $ yarn test
 
 # Overview
 ## Concept
+### Introduction
+Since Redis is fast enough for its in-memory data operations, the bottleneck of a Redis connection is the **Round-Trip Time(RTT)**, which may dramatically affects throughputs of services having Redis as the centralized datastore.
+
+This approach implemented a **Eventually consistency and Availability-Partition tolerance(AP)** approach using **pipelined Lua scripts**, **LRU cache** and **Pub/Sub** to optimize the throughput of the Rate-Limit service, and it is also capable of:
+  - [X] sharing states among all workers
+  - [X] key-space partitioning
+  - [X] Ratelimiting
+
+As a result, we can **achieve 10x faster** than normal non-pipelined Redis approach with such optimization(See [#Benchmark](#Benchmark) for details).
+
+### Implementation
+WIP
 
 ## Benchmark
 ### One Worker, local Redis
 _(Redis Instance on Intel Core i7 9850H, 16GB RAM, macOS 10.15.3)_
 
-#### Ping TTL
+#### Ping RTT
 ```shell
 --- localhost ping statistics ---
 20 packets transmitted, 20 packets received, 0.0% packet loss
@@ -120,7 +134,7 @@ Transfer/sec:      3.61MB
 ### One Worker, remote Redis
 _(Redis Instance located on TANet, vSphere6.7, 1vCPU 2GB RAM, CentOS7 + docker 19.03)_
 
-#### Ping TTL
+#### Ping RTT
 ```shell
 --- Remote-Redis ping statistics ---
 20 packets transmitted, 20 packets received, 0.0% packet loss
@@ -157,6 +171,7 @@ Transfer/sec:      3.48MB
 ```
 
 # Roadmap
+  - [ ] Worker-Threads
   - [ ] Increase Unit Test Coverage
   - [ ] Support for other Redis Client
   - [ ] LUA script for cleaning expired keys on Redis
