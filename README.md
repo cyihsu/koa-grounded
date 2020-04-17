@@ -1,5 +1,5 @@
 # koa-grounded
-> A distributed rate-limit middleware for Koa 2, inspired by Dcard's intern prelimary project.
+> A distributed rate-limit middleware for Koa 2, inspired by Dcard's intern preliminary project.
 
 [![Build Status](https://travis-ci.org/cyihsu/koa-grounded.svg?branch=master)](https://travis-ci.org/cyihsu/koa-grounded)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
